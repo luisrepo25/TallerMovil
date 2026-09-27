@@ -43,3 +43,7 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Imagenes fuente sin procesar (Meshy AI, etc.). Las copias limpias y
+# efectivamente usadas por la app viven en assets/images/onboarding/.
+/imagenesMovil/
