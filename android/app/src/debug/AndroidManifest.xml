@@ -4,4 +4,9 @@
          to allow setting breakpoints, to provide hot reload, etc.
     -->
     <uses-permission android:name="android.permission.INTERNET"/>
+
+    <!-- SOLO EN DEBUG: Android 9+ bloquea http:// por defecto. En desarrollo el backend
+         corre en http://<IP de la PC>:8000, asi que se permite. Los builds de release
+         NO heredan esto: en produccion el backend debe usar HTTPS. -->
+    <application android:usesCleartextTraffic="true" />
 </manifest>

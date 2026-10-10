@@ -2,6 +2,12 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>UUBR usa tu ubicación para mostrarte dónde estás respecto a la zona de tu campaña.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>UUBR usa la cámara para tomar las fotos de evidencia de la inspección.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>UUBR accede a tus fotos para adjuntar evidencia a la inspección.</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>

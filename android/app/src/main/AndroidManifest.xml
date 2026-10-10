@@ -1,4 +1,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Necesario en release: el manifest de debug lo trae, el de release no. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Ubicación del inspector en el mapa de la campaña (solo mientras usa la app) -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+
     <application
         android:label="app_movil_uubr"
         android:name="${applicationName}"
