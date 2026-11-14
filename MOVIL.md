@@ -174,6 +174,10 @@ El backend actual cubre login, `/me`, catálogos, campañas visibles al inspecto
 | **G8 ✅** | **Resuelta 2026-10-09:** la API ahora responde ISO 8601 con zona (`...-04:00`); la app envía `fecha_inspeccion` también con zona (`DateTime.now().toUtc().toIso8601String()`). Antes: marcas de tiempo sin zona horaria | Dispositivo en Bolivia (UTC-4) vs servidor | Acordar convención: la app envía ISO 8601 con offset; el backend normaliza |
 | **G9** | `/api/fiscalizacion/actas/historial/` no filtra por usuario | El inspector vería actas de otros | Restringir al propio inspector (o parámetro obligatorio) |
 
+> **Nota 2026-10-13 (Fase 5 del backend, sin cambios obligatorios en la app):** el clustering K-Means ya existe. Cada vez que el Administrador lo ejecuta, el servidor **reasigna `cluster_riesgo` de todas las actas cerradas** (carga de fuego y scoring siguen siendo fijos). La respuesta de `POST /sync/actas/` devuelve el cluster *vigente al sincronizar*, que puede ser `null` o cambiar después. La app debe tratarlo como informativo: mostrar "Sin clasificar" si es `null`, no usarlo para decidir nada ni asumir que es permanente. El cluster no lo calcula el teléfono (decisión 3 de CLAUDE.md).
+>
+> **Datos de demostración en la base (2026-10-13):** al descargar predios para trabajar sin conexión (M2) la app verá también 75 predios reales de OpenStreetMap con inspecciones ficticias. Pertenecen a una campaña "[DEMO]" ya **cerrada** y a un inspector "[DEMO]" sin contraseña, así que no aparecen en "Mis campañas" de un inspector real ni se pueden inspeccionar. Se quitan con `manage.py cargar_datos_demo --borrar` (backend).
+
 ## 11. Plan de implementación
 
 Una rama por tarea; marcar `[x]` con fecha al terminar; cada archivo ≤ 150 líneas.
