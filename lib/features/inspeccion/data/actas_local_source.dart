@@ -2,6 +2,7 @@ import 'package:sqflite/sqflite.dart';
 
 import '../../../core/database/app_database.dart';
 import '../domain/acta_local.dart';
+import 'acta_hijos.dart';
 import 'acta_mapper.dart';
 import 'actas_store.dart';
 
@@ -71,7 +72,7 @@ class ActasLocalSource implements ActasStore {
       where: 'uuid_local = ?',
       whereArgs: [uuidLocal],
     );
-    return filas.isEmpty ? null : _conHijos(db, filas.first);
+    return filas.isEmpty ? null : actaConHijos(db, filas.first);
   }
 
   /// Actas de un predio en una campaña, la más reciente primero.
@@ -84,7 +85,7 @@ class ActasLocalSource implements ActasStore {
       whereArgs: [campaniaId, predioId],
       orderBy: 'fecha_inspeccion DESC',
     );
-    return [for (final f in filas) await _conHijos(db, f)];
+    return [for (final f in filas) await actaConHijos(db, f)];
   }
 
   /// Estado más reciente de cada predio de una campaña: `predioId -> estado`.
@@ -123,29 +124,6 @@ class ActasLocalSource implements ActasStore {
       whereArgs: [EstadoActa.cerradaLocal.clave],
       orderBy: 'fecha_inspeccion ASC',
     );
-    return [for (final f in filas) await _conHijos(db, f)];
-  }
-
-  Future<ActaLocal> _conHijos(Database db, Map<String, Object?> fila) async {
-    final uuid = fila['uuid_local']! as String;
-    Future<List<Map<String, Object?>>> hijos(String tabla) => db.query(
-      tabla,
-      where: 'acta_uuid = ?',
-      whereArgs: [uuid],
-      orderBy: 'id',
-    );
-
-    return ActaMapper.desdeFila(
-      fila,
-      materiales: await hijos('acta_materiales'),
-      infracciones: await hijos('acta_infracciones'),
-      evidencias: await hijos('acta_evidencias'),
-      solicitudes: await db.query(
-        'acta_solicitudes_material',
-        where: 'acta_uuid = ?',
-        whereArgs: [uuid],
-        orderBy: 'rowid',
-      ),
-    );
+    return [for (final f in filas) await actaConHijos(db, f)];
   }
 }

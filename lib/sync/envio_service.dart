@@ -1,49 +1,14 @@
 import 'dart:convert';
-import 'dart:io';
-
-import 'package:dio/dio.dart';
-import 'package:path/path.dart' as p;
 
 import '../core/network/api_client.dart';
 import '../features/inspeccion/data/actas_store.dart';
 import '../features/inspeccion/domain/acta_edicion.dart';
 import '../features/inspeccion/domain/acta_envio.dart';
 import '../features/inspeccion/domain/acta_local.dart';
+import 'envio_api.dart';
+import 'envio_resultado.dart';
 
-class ResultadoEnvio {
-  const ResultadoEnvio({
-    this.enviadas = 0,
-    this.rechazadas = 0,
-    this.pendientes = 0,
-    this.fotosOmitidas = 0,
-    this.sinConexion = false,
-    this.aviso,
-  });
-
-  /// Actas que el servidor aceptó en esta corrida.
-  final int enviadas;
-
-  /// Actas que el servidor rechazó (quedan en el teléfono con el motivo).
-  final int rechazadas;
-
-  /// Actas que siguen esperando (sin conexión o servidor con problemas).
-  final int pendientes;
-
-  /// Fotos que no se pudieron subir (archivo borrado o imagen no válida) y viajaron sin ella.
-  final int fotosOmitidas;
-  final bool sinConexion;
-
-  /// Problema que cortó el envío, listo para mostrar.
-  final String? aviso;
-}
-
-/// Una condición que detiene el envío de TODAS las actas pendientes (no solo de la actual).
-class _Detenido implements Exception {
-  const _Detenido(this.aviso, {this.sinConexion = false});
-
-  final String aviso;
-  final bool sinConexion;
-}
+export 'envio_resultado.dart';
 
 /// Envía al servidor las actas cerradas en el teléfono, de la más antigua a la más nueva.
 ///
@@ -56,10 +21,10 @@ class _Detenido implements Exception {
 /// se detiene todo y se reintenta después: no se salta a las siguientes.
 class EnvioService {
   EnvioService({required ApiClient api, required ActasStore actas})
-    : _dio = api.dio,
+    : _api = EnvioApi(api.dio),
       _actas = actas;
 
-  final Dio _dio;
+  final EnvioApi _api;
   final ActasStore _actas;
 
   bool _enCurso = false;
@@ -87,7 +52,7 @@ class EnvioService {
           } else {
             rechazadas++;
           }
-        } on _Detenido catch (corte) {
+        } on EnvioDetenido catch (corte) {
           return ResultadoEnvio(
             enviadas: enviadas,
             rechazadas: rechazadas,
@@ -113,11 +78,11 @@ class EnvioService {
   ) async {
     var acta = original;
 
-    await _enviarSolicitudes(acta);
+    await _api.enviarSolicitudes(acta);
 
     var omitidas = 0;
     for (final foto in acta.evidenciasPorSubir) {
-      final url = await _subirFoto(foto);
+      final url = await _api.subirFoto(foto);
       if (url == null) {
         omitidas++;
         acta = acta.sinEvidencia(foto.rutaLocal);
@@ -128,20 +93,9 @@ class EnvioService {
       await _actas.guardar(acta);
     }
 
-    final respuesta = await _llamar(
-      () => _dio.post<Map<String, dynamic>>(
-        ApiRutas.sincronizarActas,
-        data: {
-          'actas': [acta.toSyncJson()],
-        },
-      ),
-    );
-    final resultados = respuesta.data?['resultados'];
-    final r = resultados is List && resultados.isNotEmpty
-        ? resultados.first as Map<String, dynamic>
-        : null;
+    final r = await _api.sincronizar(acta);
     if (r == null) {
-      throw const _Detenido('El servidor respondió algo inesperado.');
+      throw const EnvioDetenido('El servidor respondió algo inesperado.');
     }
 
     switch (r['estado']) {
@@ -159,77 +113,9 @@ class EnvioService {
         await _actas.guardar(acta.rechazadaPorServidor(_motivo(r)));
         return (aceptada: false, fotosOmitidas: omitidas);
       default: // error_temporal u otro: se reintenta más tarde
-        throw const _Detenido(
+        throw const EnvioDetenido(
           'El servidor no pudo procesar el acta. Se reintentará más tarde.',
         );
-    }
-  }
-
-  /// Pide al administrador los materiales nuevos. Un 400 o 409 (ya existe, ya hay una
-  /// pendiente, datos no válidos) no sirve reintentarlo y no debe frenar el acta.
-  Future<void> _enviarSolicitudes(ActaLocal acta) async {
-    for (final s in acta.solicitudesMaterial) {
-      try {
-        await _llamar(
-          () => _dio.post<void>(ApiRutas.solicitudesMaterial, data: s.toJson()),
-        );
-      } on DioException catch (e) {
-        final estado = e.response?.statusCode;
-        if (estado != 400 && estado != 409) rethrow;
-      }
-    }
-  }
-
-  /// Sube una foto. Devuelve `null` si no se puede (archivo borrado o rechazado como no
-  /// válido): la inspección se envía igual, sin esa foto.
-  Future<String?> _subirFoto(EvidenciaActa foto) async {
-    final archivo = File(foto.rutaLocal);
-    if (!await archivo.exists()) return null;
-    try {
-      final respuesta = await _llamar(
-        () async => _dio.post<Map<String, dynamic>>(
-          ApiRutas.subirEvidencia,
-          data: FormData.fromMap({
-            'imagen': await MultipartFile.fromFile(
-              archivo.path,
-              filename: p.basename(archivo.path),
-              contentType: DioMediaType('image', 'jpeg'),
-            ),
-          }),
-          // Una foto con señal débil tarda más que una petición normal (20 s): sin esto se
-          // tomaría por "sin conexión" y se reintentaría sin fin.
-          options: Options(
-            sendTimeout: const Duration(seconds: 60),
-            receiveTimeout: const Duration(seconds: 60),
-          ),
-        ),
-      );
-      return respuesta.data?['url_imagen'] as String?;
-    } on DioException catch (e) {
-      if (e.response?.statusCode == 400) return null;
-      rethrow;
-    }
-  }
-
-  /// Hace la llamada y traduce los fallos que cortan el envío completo.
-  Future<Response<T>> _llamar<T>(Future<Response<T>> Function() llamada) async {
-    try {
-      return await llamada();
-    } on DioException catch (e) {
-      final estado = e.response?.statusCode;
-      if (e.response == null) {
-        throw const _Detenido(
-          'Sin conexión: las actas se enviarán cuando haya señal.',
-          sinConexion: true,
-        );
-      }
-      if (estado == 400 || estado == 409) rethrow; // lo decide quien llama
-      if (estado == 403) {
-        throw const _Detenido('Tu cuenta no tiene permiso para enviar actas.');
-      }
-      throw const _Detenido(
-        'El servidor no respondió bien. Se reintentará más tarde.',
-      );
     }
   }
 

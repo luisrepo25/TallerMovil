@@ -1,92 +1,11 @@
-/// Ciclo de vida de un acta en el teléfono:
-///
-///   borrador -> cerradaLocal -> sincronizada
-///                          \-> rechazada (el servidor no la aceptó; NUNCA se borra sola)
-enum EstadoActa {
-  borrador,
-  cerradaLocal,
-  sincronizada,
-  rechazada;
+// Los tipos que forman un acta viven en archivos propios; se reexportan aquí para que
+// quien importe `acta_local.dart` los siga viendo.
+export 'acta_partes.dart';
+export 'acta_sync_json.dart';
+export 'estado_acta.dart';
 
-  /// Valor guardado en SQLite
-  String get clave => switch (this) {
-    EstadoActa.borrador => 'borrador',
-    EstadoActa.cerradaLocal => 'cerrada_local',
-    EstadoActa.sincronizada => 'sincronizada',
-    EstadoActa.rechazada => 'rechazada',
-  };
-
-  static EstadoActa desdeClave(String clave) =>
-      EstadoActa.values.firstWhere((e) => e.clave == clave);
-
-  /// ¿Todavía no llegó al servidor? (hay trabajo que se perdería al borrar el teléfono)
-  bool get pendienteDeEnvio => this != EstadoActa.sincronizada;
-
-  /// ¿El inspector ya la terminó? (todo menos el borrador)
-  bool get cerrada => this != EstadoActa.borrador;
-}
-
-class MaterialActa {
-  const MaterialActa({required this.materialId, required this.pesoKg});
-
-  final int materialId;
-  final double pesoKg;
-}
-
-class InfraccionActa {
-  const InfraccionActa({required this.tipoInfraccionId, this.descripcion = ''});
-
-  final int tipoInfraccionId;
-  final String descripcion;
-}
-
-/// Foto de evidencia. Se guarda en el teléfono ([rutaLocal]) y se sube a la nube al
-/// sincronizar; solo entonces tiene [urlRemota]. No hay tope de fotos por acta.
-class EvidenciaActa {
-  const EvidenciaActa({
-    required this.rutaLocal,
-    this.descripcion = '',
-    this.urlRemota,
-  });
-
-  final String rutaLocal;
-  final String descripcion;
-  final String? urlRemota;
-
-  EvidenciaActa copyWith({String? descripcion, String? urlRemota}) =>
-      EvidenciaActa(
-        rutaLocal: rutaLocal,
-        descripcion: descripcion ?? this.descripcion,
-        urlRemota: urlRemota ?? this.urlRemota,
-      );
-}
-
-/// Pedido al administrador para dar de alta un material que no está en el catálogo.
-/// El inspector no define su poder calorífico ni su peligrosidad (son datos de la norma):
-/// el administrador lo aprueba con esos valores. Mientras tanto NO cuenta en la carga de fuego.
-class SolicitudMaterialActa {
-  const SolicitudMaterialActa({
-    required this.uuidLocal,
-    required this.nombre,
-    this.descripcion = '',
-    this.pesoKgEstimado,
-  });
-
-  /// Identificador único: permite reenviar la solicitud sin duplicarla.
-  final String uuidLocal;
-  final String nombre;
-  final String descripcion;
-  final double? pesoKgEstimado;
-
-  /// Cuerpo de `POST /api/fiscalizacion/solicitudes-material/`.
-  Map<String, dynamic> toJson() => {
-    'uuid_local': uuidLocal,
-    'nombre': nombre,
-    if (descripcion.isNotEmpty) 'descripcion': descripcion,
-    if (pesoKgEstimado != null)
-      'peso_kg_estimado': pesoKgEstimado!.toStringAsFixed(2),
-  };
-}
+import 'acta_partes.dart';
+import 'estado_acta.dart';
 
 /// Acta de inspección hecha en el teléfono. Inmutable: cada cambio crea una copia.
 /// **No lleva carga de fuego ni scoring calculados aquí**: los pone el servidor al
@@ -203,33 +122,4 @@ class ActaLocal {
   /// (`POST /api/fiscalizacion/evidencias/subir/`); una foto sin URL no viaja en el acta.
   List<EvidenciaActa> get evidenciasPorSubir =>
       evidencias.where((e) => e.urlRemota == null).toList();
-
-  /// Cuerpo que espera `POST /api/fiscalizacion/sync/actas/` para esta acta. Las fechas
-  /// van en UTC con zona (ISO 8601).
-  Map<String, dynamic> toSyncJson() => {
-    'uuid_local': uuidLocal,
-    'predio_id': predioId,
-    'campania_id': campaniaId,
-    'estado_extintores_id': estadoExtintoresId,
-    // Cerrar el acta exige responderlas: los valores por defecto no se alcanzan.
-    'fallas_electricas': fallasElectricas ?? false,
-    'rutas_evacuacion_despejadas': rutasDespejadas ?? true,
-    'fecha_inspeccion': fechaInspeccion.toUtc().toIso8601String(),
-    'materiales': [
-      for (final m in materiales)
-        {'material_id': m.materialId, 'peso_kg': m.pesoKg.toStringAsFixed(2)},
-    ],
-    'infracciones': [
-      for (final i in infracciones)
-        {
-          'tipo_infraccion_id': i.tipoInfraccionId,
-          'descripcion': i.descripcion,
-        },
-    ],
-    'evidencias': [
-      for (final e in evidencias)
-        if (e.urlRemota != null)
-          {'url_imagen': e.urlRemota, 'descripcion_infraccion': e.descripcion},
-    ],
-  };
 }

@@ -1,11 +1,10 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/error_banner.dart';
-import '../../domain/acta_local.dart';
 import '../inspeccion_controller.dart';
+import 'descripcion_foto_form.dart';
+import 'fila_foto.dart';
 
 /// Paso 5: fotos de evidencia. Sin límite: una por cada problema que encuentre el inspector.
 /// Las fotos quedan en el teléfono y se suben al enviar el acta (funciona sin conexión).
@@ -29,7 +28,7 @@ class PasoEvidencia extends StatelessWidget {
     final texto = await showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
-      builder: (_) => _DescripcionForm(inicial: inicial),
+      builder: (_) => DescripcionFotoForm(inicial: inicial),
     );
     if (texto != null) await controller.describirFoto(ruta, texto);
   }
@@ -63,7 +62,7 @@ class PasoEvidencia extends StatelessWidget {
             ),
           ),
         for (final f in fotos)
-          _FilaFoto(
+          FilaFoto(
             foto: f,
             onEditar: () =>
                 _pedirDescripcion(context, f.rutaLocal, f.descripcion),
@@ -90,117 +89,6 @@ class PasoEvidencia extends StatelessWidget {
           ],
         ),
       ],
-    );
-  }
-}
-
-class _FilaFoto extends StatelessWidget {
-  const _FilaFoto({
-    required this.foto,
-    required this.onEditar,
-    required this.onQuitar,
-  });
-
-  final EvidenciaActa foto;
-  final VoidCallback onEditar;
-  final VoidCallback onQuitar;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      clipBehavior: Clip.antiAlias,
-      child: ListTile(
-        onTap: onEditar,
-        leading: ClipRRect(
-          borderRadius: BorderRadius.circular(6),
-          child: Image.file(
-            File(foto.rutaLocal),
-            width: 56,
-            height: 56,
-            fit: BoxFit.cover,
-            // cacheWidth evita decodificar la foto completa para una miniatura
-            cacheWidth: 168,
-            errorBuilder: (_, _, _) => const SizedBox(
-              width: 56,
-              height: 56,
-              child: Icon(Icons.broken_image_outlined),
-            ),
-          ),
-        ),
-        title: Text(
-          foto.descripcion.isEmpty ? 'Sin descripción' : foto.descripcion,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(
-            fontWeight: FontWeight.w600,
-            color: foto.descripcion.isEmpty ? AppColors.grisTecnico : null,
-          ),
-        ),
-        subtitle: const Text('Toca para describir el problema'),
-        trailing: IconButton(
-          tooltip: 'Quitar foto',
-          icon: const Icon(Icons.delete_outline),
-          onPressed: onQuitar,
-        ),
-      ),
-    );
-  }
-}
-
-class _DescripcionForm extends StatefulWidget {
-  const _DescripcionForm({required this.inicial});
-
-  final String inicial;
-
-  @override
-  State<_DescripcionForm> createState() => _DescripcionFormState();
-}
-
-class _DescripcionFormState extends State<_DescripcionForm> {
-  late final _texto = TextEditingController(text: widget.inicial);
-
-  @override
-  void dispose() {
-    _texto.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                'Describe el problema',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _texto,
-                autofocus: true,
-                maxLines: 3,
-                textCapitalization: TextCapitalization.sentences,
-                decoration: const InputDecoration(
-                  labelText: 'Descripción (opcional)',
-                  hintText: 'Ej. Extintor sin carga junto a la salida',
-                ),
-              ),
-              const SizedBox(height: 20),
-              FilledButton(
-                onPressed: () => Navigator.of(context).pop(_texto.text),
-                child: const Text('Guardar'),
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }

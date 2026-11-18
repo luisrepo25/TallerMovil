@@ -12,10 +12,8 @@ import '../../../inspeccion/data/actas_repository.dart';
 import '../../../inspeccion/domain/acta_local.dart';
 import '../../../inspeccion/presentation/screens/inspeccion_screen.dart';
 import '../../domain/campania.dart';
-import '../widgets/campania_cabecera.dart';
+import '../widgets/campania_detalle_cuerpo.dart';
 import '../widgets/campania_mapa.dart';
-import '../widgets/mapa_con_ubicacion.dart';
-import '../widgets/predios_en_zona.dart';
 
 /// Detalle de una campaña: mapa con su zona y la ubicación del inspector, y los predios
 /// descargados que caen en ella con el estado de su inspección. Tocar un predio lo resalta
@@ -127,29 +125,16 @@ class _CampaniaDetalleScreenState extends State<CampaniaDetalleScreen> {
         body: FutureBuilder<List<Predio>>(
           future: _predios,
           builder: (context, snapshot) {
-            final predios = snapshot.data ?? const <Predio>[];
-            return ListView(
-              children: [
-                CampaniaCabecera(campania: _campania),
-                if (_campania.tieneZona)
-                  MapaConUbicacion(
-                    campania: _campania,
-                    predios: predios,
-                    controller: _mapa,
-                    predioSeleccionadoId: _seleccionadoId,
-                  ),
-                PrediosEnZona(
-                  tieneZona: _campania.tieneZona,
-                  cargando: !snapshot.hasData,
-                  predios: predios,
-                  seleccionadoId: _seleccionadoId,
-                  onSeleccionar: _seleccionar,
-                  estados: _estados,
-                  puedeInspeccionar: !_campania.estaCerrada,
-                  onInspeccionar: _inspeccionar,
-                  onEditar: _editar,
-                ),
-              ],
+            return CampaniaDetalleCuerpo(
+              campania: _campania,
+              predios: snapshot.data ?? const <Predio>[],
+              cargando: !snapshot.hasData,
+              mapa: _mapa,
+              seleccionadoId: _seleccionadoId,
+              estados: _estados,
+              onSeleccionar: _seleccionar,
+              onInspeccionar: _inspeccionar,
+              onEditar: _editar,
             );
           },
         ),
