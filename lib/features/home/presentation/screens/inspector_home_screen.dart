@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/transitions/page_transitions.dart';
 import '../../../../core/widgets/al_reanudar.dart';
+import '../../../../core/widgets/envio_automatico.dart';
+import '../../../../sync/conexion.dart';
 import '../../../../sync/descarga_service.dart';
 import '../../../../sync/envio_service.dart';
 import '../../../auth/presentation/screens/login_screen.dart';
@@ -51,35 +53,41 @@ class InspectorHomeScreen extends StatelessWidget {
       )..iniciar(),
       // Builder: necesita un contexto dentro del provider para leer el controlador
       child: Builder(
-        builder: (context) => AlReanudar(
-          onReanudar: context.read<CampaniasController>().enviar,
-          child: Scaffold(
-            appBar: AppBar(
-              title: const Text('Mis campañas'),
-              actions: [
-                IconButton(
-                  onPressed: () => _cerrarSesion(context),
-                  icon: const Icon(Icons.logout),
-                  tooltip: 'Cerrar sesión',
-                ),
-              ],
-              bottom: usuario == null
-                  ? null
-                  : PreferredSize(
-                      preferredSize: const Size.fromHeight(28),
-                      child: Padding(
-                        padding: const EdgeInsets.only(bottom: 10),
-                        child: Text(
-                          'Hola, ${usuario.nombreCompleto}',
-                          style: const TextStyle(
-                            color: AppColors.grisClaro,
-                            fontSize: 13,
+        builder: (context) => EnvioAutomatico(
+          conexion: cambiosDeConexion(),
+          enviar: context.read<CampaniasController>().enviar,
+          hayPendientes: () =>
+              context.read<CampaniasController>().pendientesEnvio > 0,
+          child: AlReanudar(
+            onReanudar: context.read<CampaniasController>().enviar,
+            child: Scaffold(
+              appBar: AppBar(
+                title: const Text('Mis campañas'),
+                actions: [
+                  IconButton(
+                    onPressed: () => _cerrarSesion(context),
+                    icon: const Icon(Icons.logout),
+                    tooltip: 'Cerrar sesión',
+                  ),
+                ],
+                bottom: usuario == null
+                    ? null
+                    : PreferredSize(
+                        preferredSize: const Size.fromHeight(28),
+                        child: Padding(
+                          padding: const EdgeInsets.only(bottom: 10),
+                          child: Text(
+                            'Hola, ${usuario.nombreCompleto}',
+                            style: const TextStyle(
+                              color: AppColors.grisClaro,
+                              fontSize: 13,
+                            ),
                           ),
                         ),
                       ),
-                    ),
+              ),
+              body: const MisCampaniasView(),
             ),
-            body: const MisCampaniasView(),
           ),
         ),
       ),

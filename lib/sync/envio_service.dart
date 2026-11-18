@@ -196,6 +196,12 @@ class EnvioService {
               contentType: DioMediaType('image', 'jpeg'),
             ),
           }),
+          // Una foto con señal débil tarda más que una petición normal (20 s): sin esto se
+          // tomaría por "sin conexión" y se reintentaría sin fin.
+          options: Options(
+            sendTimeout: const Duration(seconds: 60),
+            receiveTimeout: const Duration(seconds: 60),
+          ),
         ),
       );
       return respuesta.data?['url_imagen'] as String?;

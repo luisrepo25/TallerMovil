@@ -28,6 +28,10 @@ enum PermisoUbicacion {
 /// Acceso a la ubicación del teléfono. Es una interfaz para poder sustituirla en las
 /// pruebas (los tests no tienen GPS).
 abstract class UbicacionService {
+  /// ¿Todavía hay que pedir el permiso al sistema? Sirve para explicarle al usuario, antes
+  /// del diálogo de Android/iOS, para qué se usa la ubicación.
+  Future<bool> faltaPreguntarPermiso();
+
   /// Revisa el permiso y, si hace falta y se puede, lo pide.
   Future<PermisoUbicacion> verificarYPedirPermiso();
 

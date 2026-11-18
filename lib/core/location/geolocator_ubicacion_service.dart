@@ -9,6 +9,10 @@ class GeolocatorUbicacionService implements UbicacionService {
   static const _filtroDistanciaM = 5;
 
   @override
+  Future<bool> faltaPreguntarPermiso() async =>
+      await Geolocator.checkPermission() == LocationPermission.denied;
+
+  @override
   Future<PermisoUbicacion> verificarYPedirPermiso() async {
     if (!await Geolocator.isLocationServiceEnabled()) {
       return PermisoUbicacion.gpsApagado;

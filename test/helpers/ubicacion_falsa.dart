@@ -9,6 +9,9 @@ class UbicacionFalsa implements UbicacionService {
   PermisoUbicacion permiso;
   final _posiciones = StreamController<Ubicacion>.broadcast();
   int vecesQueSePidioPermiso = 0;
+
+  /// Simula que el permiso aún no se ha pedido (hay que explicarlo primero).
+  bool explicarPermiso = false;
   PermisoUbicacion? ajustesAbiertosPor;
 
   bool get alguienEscucha => _posiciones.hasListener;
@@ -17,6 +20,9 @@ class UbicacionFalsa implements UbicacionService {
   void emitir(double lat, double lng, {double precisionM = 8}) {
     _posiciones.add(Ubicacion(lat: lat, lng: lng, precisionM: precisionM));
   }
+
+  @override
+  Future<bool> faltaPreguntarPermiso() async => explicarPermiso;
 
   @override
   Future<PermisoUbicacion> verificarYPedirPermiso() async {

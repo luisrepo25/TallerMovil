@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:provider/provider.dart';
 
+import '../../../../core/location/explicacion_ubicacion.dart';
 import '../../../../core/location/ubicacion_controller.dart';
 import '../../../../core/location/ubicacion_service.dart';
 import '../../../../sync/envio_service.dart';
@@ -42,7 +43,10 @@ class _CampaniaDetalleScreenState extends State<CampaniaDetalleScreen> {
     super.initState();
     _predios = context.read<PrediosRepository>().enZona(_campania);
     // Solo se sigue el GPS si hay zona que mostrar; se detiene al salir de la pantalla
-    _ubicacion = UbicacionController(context.read<UbicacionService>());
+    _ubicacion = UbicacionController(
+      context.read<UbicacionService>(),
+      alExplicar: () => explicarUbicacion(context),
+    );
     if (_campania.tieneZona) _ubicacion.iniciar();
     _cargarEstados();
   }
