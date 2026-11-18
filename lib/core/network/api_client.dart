@@ -13,12 +13,14 @@ class ApiRutas {
   static const login = '/api/auth/token/';
   static const refresh = '/api/auth/token/refresh/';
   static const perfil = '/api/usuarios/me/';
+  static const dispositivos = '/api/usuarios/dispositivos/';
   static const campanias = '/api/campanias/campanias/';
   static const predios = '/api/catastro/predios/';
   static const estadosExtintor = '/api/fiscalizacion/estados-extintor/';
   static const infracciones = '/api/fiscalizacion/infracciones-catalogo/';
   static const materiales = '/api/fiscalizacion/materiales-combustibles/';
   static const sincronizarActas = '/api/fiscalizacion/sync/actas/';
+  static const misActas = '/api/fiscalizacion/mis-actas/';
   static const subirEvidencia = '/api/fiscalizacion/evidencias/subir/';
   static const solicitudesMaterial = '/api/fiscalizacion/solicitudes-material/';
 }

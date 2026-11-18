@@ -50,3 +50,6 @@ app.*.map.json
 
 # Reportes generados por Gradle
 android/build/
+
+# Configuracion de Firebase de la app (se comparte por canal privado, como los .env)
+android/app/google-services.json

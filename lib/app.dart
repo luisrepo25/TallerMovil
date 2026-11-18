@@ -6,6 +6,9 @@ import 'core/location/geolocator_ubicacion_service.dart';
 import 'core/location/ubicacion_service.dart';
 import 'core/navigation/app_navigator.dart';
 import 'core/network/api_client.dart';
+import 'core/notifications/dispositivos_api.dart';
+import 'core/notifications/notificaciones_controller.dart';
+import 'core/notifications/notificaciones_service.dart';
 import 'core/storage/secure_session_storage.dart';
 import 'core/storage/session_storage.dart';
 import 'core/theme/app_theme.dart';
@@ -29,9 +32,15 @@ import 'sync/envio_service.dart';
 /// Raíz de la app: arma las dependencias una sola vez y las expone con Provider.
 /// Los widgets nunca crean repositorios ni clientes HTTP por su cuenta.
 class MyApp extends StatefulWidget {
-  const MyApp({super.key, SessionStorage? storage}) : _storage = storage;
+  const MyApp({
+    super.key,
+    SessionStorage? storage,
+    NotificacionesService? notificaciones,
+  }) : _storage = storage,
+       _notificaciones = notificaciones;
 
   final SessionStorage? _storage; // inyectable para pruebas
+  final NotificacionesService? _notificaciones; // sin Firebase en pruebas
 
   @override
   State<MyApp> createState() => _MyAppState();
@@ -74,6 +83,11 @@ class _MyAppState extends State<MyApp> {
     api: _api,
     database: _database,
   );
+  late final NotificacionesController _notificaciones =
+      NotificacionesController(
+        servicio: widget._notificaciones ?? const NotificacionesNoDisponibles(),
+        dispositivos: DispositivosApi(_api.dio),
+      );
 
   // El refresh token venció a mitad de una petición: volver al login limpiando la pila
   void _sesionExpirada() {
@@ -98,6 +112,7 @@ class _MyAppState extends State<MyApp> {
         Provider<ActasRepository>.value(value: _actas),
         Provider<CatalogosRepository>.value(value: _catalogos),
         Provider<EvidenciasArchivos>.value(value: _evidencias),
+        Provider<NotificacionesController>.value(value: _notificaciones),
       ],
       child: MaterialApp(
         title: 'UUBR - Riesgo de Incendios',

@@ -7,6 +7,8 @@ import '../features/campanias/data/campanias_local_source.dart';
 import '../features/campanias/domain/campania.dart';
 import '../features/catastro/data/predios_local_source.dart';
 import '../features/catastro/domain/predio.dart';
+import '../features/inspeccion/data/acta_servidor.dart';
+import '../features/inspeccion/data/actas_local_source.dart';
 import '../features/inspeccion/data/catalogos_local_source.dart';
 import '../features/inspeccion/domain/catalogos.dart';
 
@@ -41,7 +43,8 @@ class DescargaService {
       _database = database,
       _campanias = CampaniasLocalSource(database),
       _predios = PrediosLocalSource(database),
-      _catalogos = CatalogosLocalSource(database);
+      _catalogos = CatalogosLocalSource(database),
+      _actas = ActasLocalSource(database);
 
   static const claveUltimaDescarga = 'ultima_descarga';
 
@@ -50,6 +53,25 @@ class DescargaService {
   final CampaniasLocalSource _campanias;
   final PrediosLocalSource _predios;
   final CatalogosLocalSource _catalogos;
+  final ActasLocalSource _actas;
+
+  /// Recupera lo que el inspector ya inspeccionó y el servidor guarda (la base local solo
+  /// conoce lo hecho en este teléfono: tras reinstalar o cerrar sesión se vería "sin
+  /// inspeccionar" lo que ya está enviado). Es un extra: si falla, la descarga vale igual.
+  /// No pisa nada: un acta que ya está en el teléfono (con su detalle completo) se respeta.
+  Future<void> _recuperarMisActas() async {
+    try {
+      final respuesta = await _dio.get<List<dynamic>>(ApiRutas.misActas);
+      for (final json in respuesta.data ?? const <dynamic>[]) {
+        final acta = actaDesdeServidor(json as Map<String, dynamic>);
+        if (await _actas.obtener(acta.uuidLocal) == null) {
+          await _actas.guardar(acta);
+        }
+      }
+    } on Object {
+      // Sin este historial la app sigue funcionando; se reintenta en la próxima descarga.
+    }
+  }
 
   Future<DateTime?> ultimaDescarga() async {
     final db = await _database.db;
@@ -96,6 +118,7 @@ class DescargaService {
           'valor': ahora.toIso8601String(),
         }, conflictAlgorithm: ConflictAlgorithm.replace);
       });
+      await _recuperarMisActas();
       return ResultadoDescarga(
         campanias: campanias.length,
         predios: predios.length,
