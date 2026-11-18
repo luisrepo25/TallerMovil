@@ -32,6 +32,55 @@ void main() {
   tearDown(() => base.cerrar());
 
   test(
+    'un acta sin responder se lee sin responder: no se vuelve "No"',
+    () async {
+      await fuente.guardar(acta('sr'));
+      final leida = (await fuente.obtener('sr'))!;
+
+      expect(leida.fallasElectricas, isNull);
+      expect(leida.rutasDespejadas, isNull);
+      expect(leida.sinMateriales, isFalse);
+    },
+  );
+
+  test(
+    'la confirmación de "sin materiales" sobrevive a cerrar la app',
+    () async {
+      await fuente.guardar(
+        acta('sm').conSeguridadSinProblemas().conSinMateriales(true),
+      );
+      final leida = (await fuente.obtener('sm'))!;
+
+      expect(leida.fallasElectricas, isFalse);
+      expect(leida.rutasDespejadas, isTrue);
+      expect(leida.sinMateriales, isTrue);
+    },
+  );
+
+  test(
+    'una fila de antes de la v5 (0/1 y sin la columna nueva) sigue respondida',
+    () async {
+      final db = await base.db;
+      await db.insert('actas', {
+        'uuid_local': 'vieja',
+        'predio_id': 10,
+        'campania_id': 1,
+        'fecha_inspeccion': DateTime.utc(2026, 10, 9).toIso8601String(),
+        'estado_extintores_id': 1,
+        'fallas_electricas': 1,
+        'rutas_despejadas': 0,
+        'estado': 'cerrada_local',
+      });
+
+      final leida = (await fuente.obtener('vieja'))!;
+
+      expect(leida.fallasElectricas, isTrue);
+      expect(leida.rutasDespejadas, isFalse);
+      expect(leida.sinMateriales, isFalse);
+    },
+  );
+
+  test(
     'guardar y leer devuelve el acta completa, con materiales e infracciones en orden',
     () async {
       final original = acta('a1')

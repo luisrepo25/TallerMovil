@@ -3,6 +3,7 @@ import 'package:app_movil_uubr/features/inspeccion/data/actas_repository.dart';
 import 'package:app_movil_uubr/features/inspeccion/domain/acta_local.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../helpers/acta_completa.dart';
 import '../../helpers/datos_descarga.dart';
 import '../../helpers/inspeccion_en_memoria.dart';
 
@@ -24,7 +25,7 @@ void main() {
       final primera = (await repositorio.iniciarOContinuar(
         campania: abierta,
         predioId: 10,
-      )).copyWith(estadoExtintoresId: 1);
+      )).completa();
       await repositorio.cerrar(primera);
 
       final segunda = await repositorio.iniciarOContinuar(
@@ -44,7 +45,7 @@ void main() {
       final a = (await repositorio.iniciarOContinuar(
         campania: abierta,
         predioId: 10,
-      )).copyWith(estadoExtintoresId: 1);
+      )).completa();
       await repositorio.cerrar(a);
       reloj = DateTime.utc(2026, 10, 9, 16); // la reinspección es posterior
       await repositorio.iniciarOContinuar(campania: abierta, predioId: 10);
@@ -62,7 +63,7 @@ void main() {
       final a = (await repositorio.iniciarOContinuar(
         campania: abierta,
         predioId: 10,
-      )).copyWith(estadoExtintoresId: 1);
+      )).completa();
       await repositorio.cerrar(a);
       await repositorio.iniciarOContinuar(campania: abierta, predioId: 11);
 

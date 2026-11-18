@@ -5,6 +5,7 @@ import 'package:app_movil_uubr/features/inspeccion/domain/acta_local.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers/abrir_inspeccion.dart';
+import '../../helpers/acta_completa.dart';
 import '../../helpers/inspeccion_en_memoria.dart';
 
 void main() {
@@ -57,7 +58,7 @@ void main() {
     });
 
     test(
-      'la segunda parte de los datos de la anterior, que queda intacta',
+      'la segunda parte EN BLANCO: solo recuerda de qué inspección viene',
       () async {
         final primera = await primeraCerrada();
 
@@ -73,11 +74,12 @@ void main() {
         );
         expect(segunda.estado, EstadoActa.borrador);
         expect(segunda.precargadaDe, primera.fechaInspeccion);
-        expect(segunda.estadoExtintoresId, 2);
-        expect(segunda.fallasElectricas, isTrue);
-        expect(segunda.rutasDespejadas, isFalse);
-        expect(segunda.materiales.single.pesoKg, 300);
-        expect(segunda.infracciones.single.descripcion, 'Sin carga');
+        // Nada se da por verificado: el inspector responde lo que ve hoy
+        expect(segunda.estadoExtintoresId, isNull);
+        expect(segunda.fallasElectricas, isNull);
+        expect(segunda.rutasDespejadas, isNull);
+        expect(segunda.materiales, isEmpty);
+        expect(segunda.infracciones, isEmpty);
         // La anterior es historia: no se toca
         expect(
           almacen.actas[primera.uuidLocal]!.estado,
@@ -86,6 +88,59 @@ void main() {
         expect(almacen.actas[primera.uuidLocal]!.evidencias, hasLength(1));
       },
     );
+
+    test('la anterior queda disponible como referencia', () async {
+      final primera = await primeraCerrada();
+
+      final anterior = await repo.anteriorCerrada(
+        campania: campaniaAbierta,
+        predioId: predioPrueba.id,
+      );
+
+      expect(anterior?.uuidLocal, primera.uuidLocal);
+    });
+
+    test(
+      'copiar de la anterior trae seguridad y materiales, NUNCA infracciones ni fotos',
+      () async {
+        final primera = await primeraCerrada();
+        final segunda = await repo.iniciarOContinuar(
+          campania: campaniaAbierta,
+          predioId: predioPrueba.id,
+        );
+
+        final copiada = segunda.conSeguridadYMaterialesDe(primera);
+
+        expect(copiada.estadoExtintoresId, 2);
+        expect(copiada.fallasElectricas, isTrue);
+        expect(copiada.rutasDespejadas, isFalse);
+        expect(copiada.materiales.single.pesoKg, 300);
+        // Sin esto el servidor marcaría reincidencia en infracciones que nadie volvió a ver
+        expect(copiada.infracciones, isEmpty);
+        expect(copiada.evidencias, isEmpty);
+        expect(copiada.solicitudesMaterial, isEmpty);
+      },
+    );
+
+    test('copiar de una anterior sin materiales conserva la confirmación', () {
+      final anterior = ActaLocal(
+        uuidLocal: 'a',
+        predioId: 1,
+        campaniaId: 1,
+        fechaInspeccion: DateTime.utc(2026, 10, 9),
+      ).completa(extintores: 3);
+      final nueva = ActaLocal(
+        uuidLocal: 'b',
+        predioId: 1,
+        campaniaId: 1,
+        fechaInspeccion: DateTime.utc(2026, 10, 10),
+      );
+
+      final copiada = nueva.conSeguridadYMaterialesDe(anterior);
+
+      expect(copiada.sinMateriales, isTrue);
+      expect(copiada.puedeCerrar, isTrue);
+    });
 
     test(
       'las fotos y las solicitudes NO se copian: son de la inspección de ese día',
@@ -132,23 +187,21 @@ void main() {
       expect(segunda.materiales, isEmpty);
     });
 
-    test('la parte de la anterior se puede corregir antes de cerrar', () async {
+    test('la reinspección se llena y se guarda como cualquier acta', () async {
       await primeraCerrada();
       final segunda = await repo.iniciarOContinuar(
         campania: campaniaAbierta,
         predioId: predioPrueba.id,
       );
 
-      final corregida = segunda
-          .copyWith(estadoExtintoresId: 1)
-          .conMaterial(1, 120)
-          .sinInfraccion(1);
-      await repo.guardar(corregida);
+      final llena = segunda.completa().conMaterial(1, 120);
+      await repo.guardar(llena);
 
       final guardada = almacen.actas[segunda.uuidLocal]!;
       expect(guardada.estadoExtintoresId, 1);
       expect(guardada.materiales.single.pesoKg, 120);
       expect(guardada.infracciones, isEmpty);
+      expect(guardada.puedeCerrar, isTrue);
     });
   });
 
@@ -250,10 +303,11 @@ void main() {
       await abrirInspeccion(tester, almacen: almacen);
 
       expect(
-        find.textContaining('Reinspección: partes de los datos del'),
+        find.textContaining('Reinspección: la anterior fue el'),
         findsOneWidget,
       );
-      expect(find.textContaining('09 oct 2026'), findsOneWidget);
+      expect(find.textContaining('09 oct 2026'), findsWidgets);
+      expect(find.text('Copiar seguridad y materiales'), findsOneWidget);
     },
   );
 }

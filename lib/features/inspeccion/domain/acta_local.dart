@@ -98,9 +98,10 @@ class ActaLocal {
     required this.campaniaId,
     required this.fechaInspeccion,
     this.estadoExtintoresId,
-    this.fallasElectricas = false,
-    this.rutasDespejadas = true,
+    this.fallasElectricas,
+    this.rutasDespejadas,
     this.estado = EstadoActa.borrador,
+    this.sinMateriales = false,
     this.materiales = const [],
     this.infracciones = const [],
     this.evidencias = const [],
@@ -122,9 +123,15 @@ class ActaLocal {
   /// sincronización.
   final DateTime fechaInspeccion;
   final int? estadoExtintoresId;
-  final bool fallasElectricas;
-  final bool rutasDespejadas;
+
+  /// `null` = el inspector todavía no respondió. No hay valor por defecto: un "no" por
+  /// descuido cambiaría el riesgo del predio, así que cerrar el acta exige responder.
+  final bool? fallasElectricas;
+  final bool? rutasDespejadas;
   final EstadoActa estado;
+
+  /// El inspector confirmó que el predio no tiene materiales combustibles.
+  final bool sinMateriales;
   final List<MaterialActa> materiales;
   final List<InfraccionActa> infracciones;
   final List<EvidenciaActa> evidencias;
@@ -147,6 +154,13 @@ class ActaLocal {
   /// Qué falta para poder cerrar el acta (vacío = lista para cerrar).
   List<String> get faltantesParaCerrar => [
     if (estadoExtintoresId == null) 'Indica el estado de los extintores.',
+    if (fallasElectricas == null) 'Responde si hay fallas eléctricas.',
+    if (rutasDespejadas == null)
+      'Responde si las rutas de evacuación están despejadas.',
+    if (materiales.isEmpty && solicitudesMaterial.isEmpty && !sinMateriales)
+      'Registra los materiales combustibles o confirma que no hay.',
+    if (infracciones.isNotEmpty && evidencias.isEmpty)
+      'Agrega al menos una foto de evidencia de las infracciones.',
   ];
 
   bool get puedeCerrar => editable && faltantesParaCerrar.isEmpty;
@@ -156,6 +170,7 @@ class ActaLocal {
     bool? fallasElectricas,
     bool? rutasDespejadas,
     EstadoActa? estado,
+    bool? sinMateriales,
     List<MaterialActa>? materiales,
     List<InfraccionActa>? infracciones,
     List<EvidenciaActa>? evidencias,
@@ -170,6 +185,7 @@ class ActaLocal {
     fallasElectricas: fallasElectricas ?? this.fallasElectricas,
     rutasDespejadas: rutasDespejadas ?? this.rutasDespejadas,
     estado: estado ?? this.estado,
+    sinMateriales: sinMateriales ?? this.sinMateriales,
     materiales: materiales ?? this.materiales,
     infracciones: infracciones ?? this.infracciones,
     evidencias: evidencias ?? this.evidencias,
@@ -195,8 +211,9 @@ class ActaLocal {
     'predio_id': predioId,
     'campania_id': campaniaId,
     'estado_extintores_id': estadoExtintoresId,
-    'fallas_electricas': fallasElectricas,
-    'rutas_evacuacion_despejadas': rutasDespejadas,
+    // Cerrar el acta exige responderlas: los valores por defecto no se alcanzan.
+    'fallas_electricas': fallasElectricas ?? false,
+    'rutas_evacuacion_despejadas': rutasDespejadas ?? true,
     'fecha_inspeccion': fechaInspeccion.toUtc().toIso8601String(),
     'materiales': [
       for (final m in materiales)

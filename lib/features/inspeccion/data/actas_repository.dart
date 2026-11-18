@@ -55,7 +55,9 @@ class ActasRepository {
     final anterior = existentes
         .where((a) => a.estado.cerrada && a.estado != EstadoActa.rechazada)
         .firstOrNull;
-    if (anterior != null) nueva = nueva.conDatosDeAnterior(anterior);
+    if (anterior != null) {
+      nueva = nueva.comoReinspeccionDe(anterior.fechaInspeccion);
+    }
     await _store.guardar(nueva);
     return nueva;
   }
@@ -90,6 +92,18 @@ class ActasRepository {
     final reabierta = cerrada.reabierta();
     await _store.guardar(reabierta);
     return reabierta;
+  }
+
+  /// La última inspección cerrada del predio en la campaña (la que se muestra como
+  /// referencia en una reinspección).  si es la primera.
+  Future<ActaLocal?> anteriorCerrada({
+    required Campania campania,
+    required int predioId,
+  }) async {
+    final existentes = await _store.delPredio(campania.id, predioId);
+    return existentes
+        .where((a) => a.estado.cerrada && a.estado != EstadoActa.rechazada)
+        .firstOrNull;
   }
 
   /// Autoguardado: solo un borrador se puede modificar.

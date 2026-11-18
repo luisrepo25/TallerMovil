@@ -14,7 +14,7 @@ class AppDatabase {
   final DatabaseFactory? _factory;
 
   /// Subir este número al agregar un bloque nuevo en `migraciones.dart`.
-  static const int version = 4;
+  static const int version = 5;
 
   /// Datos que vienen del servidor y se pueden volver a descargar.
   static const tablasDescargadas = [

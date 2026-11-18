@@ -12,6 +12,7 @@ class PasoPredio extends StatelessWidget {
     required this.predio,
     required this.campania,
     this.precargadaDe,
+    this.referencia,
   });
 
   final Predio predio;
@@ -19,6 +20,9 @@ class PasoPredio extends StatelessWidget {
 
   /// Fecha de la inspección anterior de la que partió esta (reinspección).
   final DateTime? precargadaDe;
+
+  /// Lo registrado en la inspección anterior (solo en una reinspección).
+  final Widget? referencia;
 
   @override
   Widget build(BuildContext context) {
@@ -48,14 +52,15 @@ class PasoPredio extends StatelessWidget {
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    'Reinspección: partes de los datos del ${Fechas.corta(precargadaDe!.toLocal())}. '
-                    'Verifica cada dato y corrige lo que haya cambiado. Las fotos no se copian.',
+                    'Reinspección: la anterior fue el ${Fechas.corta(precargadaDe!.toLocal())}. '
+                    'Esta parte en blanco: responde lo que ves hoy.',
                   ),
                 ),
               ],
             ),
           ),
           const SizedBox(height: 12),
+          if (referencia != null) ...[referencia!, const SizedBox(height: 12)],
         ],
         Card(
           margin: EdgeInsets.zero,

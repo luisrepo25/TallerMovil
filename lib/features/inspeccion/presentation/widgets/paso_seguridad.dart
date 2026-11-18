@@ -47,6 +47,17 @@ class PasoSeguridad extends StatelessWidget {
             ),
           ),
         const SizedBox(height: 16),
+        if (acta.fallasElectricas == null || acta.rutasDespejadas == null) ...[
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.tonalIcon(
+              onPressed: controller.seguridadSinProblemas,
+              icon: const Icon(Icons.done_all),
+              label: const Text('Sin fallas y rutas despejadas'),
+            ),
+          ),
+          const SizedBox(height: 16),
+        ],
         _PreguntaSiNo(
           pregunta: '¿Hay fallas eléctricas?',
           valor: acta.fallasElectricas,
@@ -71,7 +82,7 @@ class _PreguntaSiNo extends StatelessWidget {
   });
 
   final String pregunta;
-  final bool valor;
+  final bool? valor;
   final ValueChanged<bool> onChanged;
 
   @override
@@ -89,10 +100,21 @@ class _PreguntaSiNo extends StatelessWidget {
               ButtonSegment(value: true, label: Text('Sí')),
               ButtonSegment(value: false, label: Text('No')),
             ],
-            selected: {valor},
-            onSelectionChanged: (s) => onChanged(s.first),
+            emptySelectionAllowed: true,
+            selected: valor == null ? <bool>{} : {valor!},
+            onSelectionChanged: (s) {
+              if (s.isNotEmpty) onChanged(s.first);
+            },
           ),
         ),
+        if (valor == null)
+          const Padding(
+            padding: EdgeInsets.only(top: 4),
+            child: Text(
+              'Sin responder',
+              style: TextStyle(color: AppColors.riesgoCritico),
+            ),
+          ),
       ],
     );
   }

@@ -48,8 +48,8 @@ class PasoResumen extends StatelessWidget {
           titulo: 'Seguridad',
           lineas: [
             'Extintores: ${extintores ?? 'sin indicar'}',
-            'Fallas eléctricas: ${acta.fallasElectricas ? 'sí' : 'no'}',
-            'Rutas de evacuación despejadas: ${acta.rutasDespejadas ? 'sí' : 'no'}',
+            'Fallas eléctricas: ${_respuesta(acta.fallasElectricas)}',
+            'Rutas de evacuación despejadas: ${_respuesta(acta.rutasDespejadas)}',
           ],
           onEditar: () => controller.irAPaso(PasoInspeccion.seguridad),
         ),
@@ -58,7 +58,10 @@ class PasoResumen extends StatelessWidget {
           lineas: [
             for (final m in acta.materiales)
               '${catalogos.material(m.materialId)?.nombre ?? 'Material #${m.materialId}'}: ${m.pesoKg} kg',
-            if (acta.materiales.isEmpty) 'Ninguno registrado',
+            if (acta.materiales.isEmpty)
+              acta.sinMateriales
+                  ? 'Confirmado: sin materiales combustibles'
+                  : 'Ninguno registrado',
           ],
           onEditar: () => controller.irAPaso(PasoInspeccion.materiales),
         ),
@@ -98,6 +101,9 @@ class PasoResumen extends StatelessWidget {
     );
   }
 }
+
+String _respuesta(bool? valor) =>
+    valor == null ? 'sin responder' : (valor ? 'sí' : 'no');
 
 class _Seccion extends StatelessWidget {
   const _Seccion({

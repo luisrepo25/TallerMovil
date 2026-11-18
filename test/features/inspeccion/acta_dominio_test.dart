@@ -4,6 +4,8 @@ import 'package:app_movil_uubr/features/inspeccion/domain/acta_edicion.dart';
 import 'package:app_movil_uubr/features/inspeccion/domain/acta_local.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../helpers/acta_completa.dart';
+
 ActaLocal actaNueva() => ActaLocal(
   uuidLocal: 'uuid-1',
   predioId: 10,
@@ -13,38 +15,115 @@ ActaLocal actaNueva() => ActaLocal(
 
 void main() {
   group('reglas del acta', () {
-    test('no se puede cerrar sin indicar el estado de los extintores', () {
+    test('un acta en blanco no se puede cerrar y dice qué falta', () {
       final acta = actaNueva();
 
       expect(acta.puedeCerrar, isFalse);
-      expect(acta.faltantesParaCerrar, ['Indica el estado de los extintores.']);
+      expect(acta.faltantesParaCerrar, [
+        'Indica el estado de los extintores.',
+        'Responde si hay fallas eléctricas.',
+        'Responde si las rutas de evacuación están despejadas.',
+        'Registra los materiales combustibles o confirma que no hay.',
+      ]);
+    });
+
+    test('con todo respondido ya se puede cerrar', () {
+      final acta = actaNueva().completa();
+
+      expect(acta.puedeCerrar, isTrue);
+      expect(acta.faltantesParaCerrar, isEmpty);
+    });
+
+    test('las respuestas no tienen valor por defecto: hay que darlas', () {
+      final acta = actaNueva();
+
+      expect(acta.fallasElectricas, isNull);
+      expect(acta.rutasDespejadas, isNull);
     });
 
     test(
-      'con los extintores indicados ya se puede cerrar (materiales e infracciones son opcionales)',
+      'responder "No" a las fallas cuenta como respuesta (no es lo mismo que vacío)',
       () {
-        final acta = actaNueva().copyWith(estadoExtintoresId: 1);
+        final acta = actaNueva().copyWith(fallasElectricas: false);
 
-        expect(acta.puedeCerrar, isTrue);
-        expect(acta.materiales, isEmpty);
+        expect(
+          acta.faltantesParaCerrar,
+          isNot(contains('Responde si hay fallas eléctricas.')),
+        );
       },
     );
 
-    test('un acta cerrada ya no es editable ni se puede volver a cerrar', () {
-      final cerrada = actaNueva().copyWith(
+    test(
+      '"Sin fallas y rutas despejadas" responde las dos preguntas de una vez',
+      () {
+        final acta = actaNueva().conSeguridadSinProblemas();
+
+        expect(acta.fallasElectricas, isFalse);
+        expect(acta.rutasDespejadas, isTrue);
+      },
+    );
+
+    test('sin materiales: o se registra alguno o se confirma que no hay', () {
+      final base = actaNueva().copyWith(
         estadoExtintoresId: 1,
+        fallasElectricas: false,
+        rutasDespejadas: true,
+      );
+
+      expect(base.puedeCerrar, isFalse);
+      expect(base.conSinMateriales(true).puedeCerrar, isTrue);
+      expect(base.conMaterial(1, 10).puedeCerrar, isTrue);
+    });
+
+    test('agregar un material anula la confirmación de "sin materiales"', () {
+      final acta = actaNueva().conSinMateriales(true).conMaterial(1, 10);
+
+      expect(acta.sinMateriales, isFalse);
+      expect(acta.materiales, hasLength(1));
+    });
+
+    test('confirmar "sin materiales" vacía la lista', () {
+      final acta = actaNueva().conMaterial(1, 10).conSinMateriales(true);
+
+      expect(acta.sinMateriales, isTrue);
+      expect(acta.materiales, isEmpty);
+    });
+
+    test(
+      'una solicitud de material nuevo también cuenta como material pendiente',
+      () {
+        final acta = actaNueva()
+            .completa()
+            .conSinMateriales(false)
+            .conSolicitudMaterial(
+              const SolicitudMaterialActa(uuidLocal: 's1', nombre: 'Espuma'),
+            );
+
+        expect(acta.faltantesParaCerrar, isEmpty);
+      },
+    );
+
+    test('con infracciones se exige al menos una foto de evidencia', () {
+      final sinFoto = actaNueva().completa().conInfraccion(1, 'Sin carga');
+
+      expect(sinFoto.puedeCerrar, isFalse);
+      expect(sinFoto.faltantesParaCerrar, [
+        'Agrega al menos una foto de evidencia de las infracciones.',
+      ]);
+      expect(sinFoto.conEvidencia('/f/1.jpg', '').puedeCerrar, isTrue);
+    });
+
+    test('sin infracciones no se pide foto', () {
+      expect(actaNueva().completa().puedeCerrar, isTrue);
+    });
+
+    test('un acta cerrada ya no es editable ni se puede volver a cerrar', () {
+      final cerrada = actaNueva().completa().copyWith(
         estado: EstadoActa.cerradaLocal,
       );
 
       expect(cerrada.editable, isFalse);
       expect(cerrada.puedeCerrar, isFalse);
-    });
-
-    test('por defecto: sin fallas eléctricas y con las rutas despejadas', () {
-      final acta = actaNueva();
-
-      expect(acta.fallasElectricas, isFalse);
-      expect(acta.rutasDespejadas, isTrue);
     });
 
     test('solo "enviada" deja de ser trabajo pendiente', () {

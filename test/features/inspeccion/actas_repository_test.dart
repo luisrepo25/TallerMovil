@@ -3,6 +3,7 @@ import 'package:app_movil_uubr/features/inspeccion/data/actas_repository.dart';
 import 'package:app_movil_uubr/features/inspeccion/domain/acta_local.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../helpers/acta_completa.dart';
 import '../../helpers/datos_descarga.dart';
 import '../../helpers/inspeccion_en_memoria.dart';
 
@@ -108,7 +109,7 @@ void main() {
       final acta = (await repositorio.iniciarOContinuar(
         campania: abierta,
         predioId: 10,
-      )).copyWith(estadoExtintoresId: 1);
+      )).completa();
       reloj = DateTime.utc(2026, 10, 9, 15, 20);
 
       final resultado = await repositorio.cerrar(acta);
@@ -125,7 +126,7 @@ void main() {
       final acta = (await repositorio.iniciarOContinuar(
         campania: abierta,
         predioId: 10,
-      )).copyWith(estadoExtintoresId: 1);
+      )).completa();
       final cerradaLocal = await repositorio.cerrar(acta);
 
       await expectLater(

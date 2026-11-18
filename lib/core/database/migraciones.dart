@@ -8,6 +8,15 @@ Future<void> aplicarMigraciones(Database db, int desde) async {
   if (desde < 2) await _v2(db);
   if (desde < 3) await _v3(db);
   if (desde < 4) await _v4(db);
+  if (desde < 5) await _v5(db);
+}
+
+/// v5: el inspector confirma explícitamente que un predio no tiene materiales combustibles.
+/// Las actas anteriores quedan en 0 (no aplica: ya estaban cerradas o se completarán).
+Future<void> _v5(Database db) async {
+  await db.execute(
+    'ALTER TABLE actas ADD COLUMN sin_materiales INTEGER NOT NULL DEFAULT 0',
+  );
 }
 
 /// v4: de qué inspección anterior se precargó un acta (reinspección).

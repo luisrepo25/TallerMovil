@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_colors.dart';
-import '../../domain/acta_local.dart';
 import '../inspeccion_controller.dart';
+import 'filas_material.dart';
 import 'material_sheet.dart';
 import 'solicitud_material_sheet.dart';
 
@@ -31,12 +31,19 @@ class PasoMateriales extends StatelessWidget {
           style: TextStyle(color: AppColors.grisTecnico),
         ),
         const SizedBox(height: 16),
-        if (materiales.isEmpty)
-          const _Vacio(
-            'Aún no agregaste materiales. Si el predio no almacena material combustible, puedes continuar.',
+        if (materiales.isEmpty && controller.acta!.solicitudesMaterial.isEmpty)
+          CheckboxListTile(
+            contentPadding: EdgeInsets.zero,
+            controlAffinity: ListTileControlAffinity.leading,
+            value: controller.acta!.sinMateriales,
+            onChanged: (v) => controller.marcarSinMateriales(v ?? false),
+            title: const Text('Este predio no tiene materiales combustibles'),
+            subtitle: const Text(
+              'Confírmalo para poder cerrar el acta sin materiales.',
+            ),
           ),
         for (final m in materiales)
-          _FilaMaterial(controller: controller, material: m),
+          FilaMaterial(controller: controller, material: m),
         const SizedBox(height: 12),
         OutlinedButton.icon(
           onPressed: quedanPorAgregar
@@ -56,89 +63,8 @@ class PasoMateriales extends StatelessWidget {
           label: const Text('¿No está tu material? Solicitar al administrador'),
         ),
         for (final s in controller.acta!.solicitudesMaterial)
-          _FilaSolicitud(controller: controller, solicitud: s),
+          FilaSolicitud(controller: controller, solicitud: s),
       ],
-    );
-  }
-}
-
-/// Material pedido al administrador: aún no está en el catálogo, no suma a la carga de fuego.
-class _FilaSolicitud extends StatelessWidget {
-  const _FilaSolicitud({required this.controller, required this.solicitud});
-
-  final InspeccionController controller;
-  final SolicitudMaterialActa solicitud;
-
-  @override
-  Widget build(BuildContext context) {
-    final peso = solicitud.pesoKgEstimado;
-    return Card(
-      margin: const EdgeInsets.only(top: 8),
-      child: ListTile(
-        leading: const Icon(Icons.hourglass_top, color: AppColors.riesgoMedio),
-        title: Text(
-          solicitud.nombre,
-          style: const TextStyle(fontWeight: FontWeight.w600),
-        ),
-        subtitle: Text(
-          'Solicitado al administrador'
-          '${peso == null ? '' : ' · ~${peso.toStringAsFixed(peso % 1 == 0 ? 0 : 2)} kg'}',
-        ),
-        trailing: IconButton(
-          tooltip: 'Quitar solicitud de ${solicitud.nombre}',
-          icon: const Icon(Icons.delete_outline),
-          onPressed: () =>
-              controller.quitarSolicitudMaterial(solicitud.uuidLocal),
-        ),
-      ),
-    );
-  }
-}
-
-class _FilaMaterial extends StatelessWidget {
-  const _FilaMaterial({required this.controller, required this.material});
-
-  final InspeccionController controller;
-  final MaterialActa material;
-
-  @override
-  Widget build(BuildContext context) {
-    final nombre =
-        controller.catalogos!.material(material.materialId)?.nombre ??
-        'Material #${material.materialId}';
-
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      child: ListTile(
-        onTap: () =>
-            mostrarMaterialSheet(context, controller, editar: material),
-        title: Text(
-          nombre,
-          style: const TextStyle(fontWeight: FontWeight.w600),
-        ),
-        subtitle: Text(
-          '${material.pesoKg.toStringAsFixed(material.pesoKg % 1 == 0 ? 0 : 2)} kg',
-        ),
-        trailing: IconButton(
-          tooltip: 'Quitar $nombre',
-          icon: const Icon(Icons.delete_outline),
-          onPressed: () => controller.quitarMaterial(material.materialId),
-        ),
-      ),
-    );
-  }
-}
-
-class _Vacio extends StatelessWidget {
-  const _Vacio(this.texto);
-
-  final String texto;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Text(texto, style: const TextStyle(color: AppColors.grisTecnico)),
     );
   }
 }

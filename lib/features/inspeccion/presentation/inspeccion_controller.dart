@@ -6,6 +6,7 @@ import '../data/actas_repository.dart';
 import '../data/catalogos_repository.dart';
 import '../data/evidencias_archivos.dart';
 import '../domain/acta_edicion.dart';
+import '../domain/acta_envio.dart';
 import '../domain/acta_local.dart';
 import '../domain/catalogos.dart';
 import 'paso_inspeccion.dart';
@@ -35,6 +36,9 @@ class InspeccionController extends ChangeNotifier {
   final int predioId;
 
   ActaLocal? acta;
+
+  /// La inspección anterior del predio, solo si esta es una reinspección (referencia).
+  ActaLocal? anterior;
   Catalogos? catalogos;
   PasoInspeccion paso = PasoInspeccion.predio;
   bool cargando = true;
@@ -56,6 +60,12 @@ class InspeccionController extends ChangeNotifier {
         campania: campania,
         predioId: predioId,
       );
+      if (acta?.precargadaDe != null) {
+        anterior = await _actas.anteriorCerrada(
+          campania: campania,
+          predioId: predioId,
+        );
+      }
     } on InspeccionNoPermitida catch (e) {
       error = e.mensaje;
     }
@@ -84,6 +94,20 @@ class InspeccionController extends ChangeNotifier {
 
   Future<void> marcarRutasDespejadas(bool valor) =>
       _modificar((a) => a.copyWith(rutasDespejadas: valor));
+
+  /// Un toque para el caso normal: sin fallas eléctricas y rutas despejadas.
+  Future<void> seguridadSinProblemas() =>
+      _modificar((a) => a.conSeguridadSinProblemas());
+
+  Future<void> marcarSinMateriales(bool valor) =>
+      _modificar((a) => a.conSinMateriales(valor));
+
+  /// Reinspección: copia seguridad y materiales de la anterior (acción explícita).
+  Future<void> copiarDeAnterior() async {
+    final previa = anterior;
+    if (previa == null) return;
+    await _modificar((a) => a.conSeguridadYMaterialesDe(previa));
+  }
 
   Future<void> guardarMaterial(int materialId, double pesoKg) =>
       _modificar((a) => a.conMaterial(materialId, pesoKg));

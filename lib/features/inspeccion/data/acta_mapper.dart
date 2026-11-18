@@ -10,8 +10,9 @@ class ActaMapper {
     'campania_id': a.campaniaId,
     'fecha_inspeccion': a.fechaInspeccion.toUtc().toIso8601String(),
     'estado_extintores_id': a.estadoExtintoresId,
-    'fallas_electricas': a.fallasElectricas ? 1 : 0,
-    'rutas_despejadas': a.rutasDespejadas ? 1 : 0,
+    'fallas_electricas': _respuestaAFila(a.fallasElectricas),
+    'rutas_despejadas': _respuestaAFila(a.rutasDespejadas),
+    'sin_materiales': a.sinMateriales ? 1 : 0,
     'estado': a.estado.clave,
     'fecha_cierre_local': a.fechaCierreLocal?.toUtc().toIso8601String(),
     'acta_id_servidor': a.actaIdServidor,
@@ -21,6 +22,13 @@ class ActaMapper {
     'motivo_rechazo': a.motivoRechazo,
     'precargada_de': a.precargadaDe?.toUtc().toIso8601String(),
   };
+
+  /// Sí = 1, No = 0, sin responder = -1 (las columnas son NOT NULL desde la v1).
+  static int _respuestaAFila(bool? valor) =>
+      valor == null ? -1 : (valor ? 1 : 0);
+
+  static bool? _respuestaDesdeFila(Object? valor) =>
+      (valor! as int) < 0 ? null : valor == 1;
 
   static Map<String, Object?> materialAFila(String actaUuid, MaterialActa m) =>
       {'acta_uuid': actaUuid, 'material_id': m.materialId, 'peso_kg': m.pesoKg};
@@ -70,8 +78,9 @@ class ActaMapper {
       campaniaId: fila['campania_id']! as int,
       fechaInspeccion: DateTime.parse(fila['fecha_inspeccion']! as String),
       estadoExtintoresId: fila['estado_extintores_id'] as int?,
-      fallasElectricas: (fila['fallas_electricas']! as int) == 1,
-      rutasDespejadas: (fila['rutas_despejadas']! as int) == 1,
+      fallasElectricas: _respuestaDesdeFila(fila['fallas_electricas']),
+      rutasDespejadas: _respuestaDesdeFila(fila['rutas_despejadas']),
+      sinMateriales: (fila['sin_materiales'] as int? ?? 0) == 1,
       estado: EstadoActa.desdeClave(fila['estado']! as String),
       fechaCierreLocal: cierre == null ? null : DateTime.parse(cierre),
       actaIdServidor: fila['acta_id_servidor'] as int?,

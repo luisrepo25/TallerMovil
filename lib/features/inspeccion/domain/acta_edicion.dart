@@ -11,11 +11,20 @@ extension EdicionActa on ActaLocal {
     final nuevo = MaterialActa(materialId: materialId, pesoKg: pesoKg);
     final existe = materiales.any((m) => m.materialId == materialId);
     return copyWith(
+      sinMateriales: false,
       materiales: existe
           ? [for (final m in materiales) m.materialId == materialId ? nuevo : m]
           : [...materiales, nuevo],
     );
   }
+
+  /// "Este predio no tiene materiales combustibles": confirmación explícita.
+  ActaLocal conSinMateriales(bool valor) =>
+      copyWith(sinMateriales: valor, materiales: valor ? const [] : null);
+
+  /// Un toque para el caso normal: sin fallas eléctricas y rutas despejadas.
+  ActaLocal conSeguridadSinProblemas() =>
+      copyWith(fallasElectricas: false, rutasDespejadas: true);
 
   ActaLocal sinMaterial(int materialId) => copyWith(
     materiales: materiales.where((m) => m.materialId != materialId).toList(),

@@ -13,6 +13,7 @@ extension EnvioActa on ActaLocal {
     double? scoringRiesgo,
     String? clusterRiesgo,
     String? motivoRechazo,
+    DateTime? precargadaDe,
   }) => ActaLocal(
     uuidLocal: uuidLocal,
     predioId: predioId,
@@ -22,6 +23,7 @@ extension EnvioActa on ActaLocal {
     fallasElectricas: fallasElectricas,
     rutasDespejadas: rutasDespejadas,
     estado: estado ?? this.estado,
+    sinMateriales: sinMateriales,
     materiales: materiales,
     infracciones: infracciones,
     evidencias: evidencias ?? this.evidencias,
@@ -34,7 +36,7 @@ extension EnvioActa on ActaLocal {
     scoringRiesgo: scoringRiesgo ?? this.scoringRiesgo,
     clusterRiesgo: clusterRiesgo ?? this.clusterRiesgo,
     motivoRechazo: motivoRechazo ?? this.motivoRechazo,
-    precargadaDe: precargadaDe,
+    precargadaDe: precargadaDe ?? this.precargadaDe,
   );
 
   /// Una foto ya subida a la nube: no se vuelve a subir si el envío se corta a la mitad.
@@ -68,19 +70,19 @@ extension EnvioActa on ActaLocal {
   ActaLocal reabierta() =>
       _con(estado: EstadoActa.borrador, sinFechaCierre: true);
 
-  /// Datos de partida de una reinspección, tomados de la inspección anterior del predio.
-  /// Se copia lo que suele repetirse (seguridad, materiales, infracciones); NO se copian las
-  /// fotos ni las solicitudes de material, que pertenecen a la inspección de aquel día.
-  ActaLocal conDatosDeAnterior(ActaLocal anterior) => ActaLocal(
-    uuidLocal: uuidLocal,
-    predioId: predioId,
-    campaniaId: campaniaId,
-    fechaInspeccion: fechaInspeccion,
+  /// Marca el acta como reinspección de la hecha en [fecha]. **Parte en blanco**: copiar los
+  /// datos de la anterior en silencio haría pasar por verificado lo que el inspector no vio,
+  /// y el servidor marcaría como reincidencia infracciones que nadie volvió a constatar.
+  ActaLocal comoReinspeccionDe(DateTime fecha) => _con(precargadaDe: fecha);
+
+  /// Copia seguridad y materiales de la inspección anterior. Es una acción explícita del
+  /// inspector (un toque) para no repetir lo que no cambió. **No copia infracciones ni
+  /// fotos**: pertenecen a la inspección de aquel día y se constatan de nuevo.
+  ActaLocal conSeguridadYMaterialesDe(ActaLocal anterior) => copyWith(
     estadoExtintoresId: anterior.estadoExtintoresId,
     fallasElectricas: anterior.fallasElectricas,
     rutasDespejadas: anterior.rutasDespejadas,
     materiales: anterior.materiales,
-    infracciones: anterior.infracciones,
-    precargadaDe: anterior.fechaInspeccion,
+    sinMateriales: anterior.materiales.isEmpty && anterior.sinMateriales,
   );
 }

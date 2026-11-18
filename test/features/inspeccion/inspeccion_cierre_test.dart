@@ -20,11 +20,24 @@ void main() {
       await siguiente(tester);
       await tester.tap(find.text('Vigente'));
       await tester.pump();
-      await siguiente(tester, 4);
+      // Caso normal en un solo toque: sin fallas y rutas despejadas
+      await tester.tap(find.text('Sin fallas y rutas despejadas'));
+      await tester.pump();
+      await siguiente(tester); // Materiales: confirma que no hay
+      await tester.tap(
+        find.text('Este predio no tiene materiales combustibles'),
+      );
+      await tester.pump();
+      await siguiente(tester, 3);
 
       expect(find.text('Extintores: Vigente'), findsOneWidget);
-      expect(find.text('Ninguno registrado'), findsOneWidget);
+      expect(find.text('Fallas eléctricas: no'), findsOneWidget);
+      expect(
+        find.text('Confirmado: sin materiales combustibles'),
+        findsOneWidget,
+      );
       expect(find.text('Indica el estado de los extintores.'), findsNothing);
+      expect(find.text('Responde si hay fallas eléctricas.'), findsNothing);
 
       await tester.tap(find.text('Cerrar acta'));
       await tester.pumpAndSettle();
@@ -50,7 +63,9 @@ void main() {
     await abrirInspeccion(tester, almacen: almacen);
     await siguiente(tester, 5);
 
-    await tester.tap(find.text('Editar').at(1)); // sección Seguridad
+    final editarSeguridad = find.text('Editar').at(1); // sección Seguridad
+    await tester.ensureVisible(editarSeguridad);
+    await tester.tap(editarSeguridad);
     await tester.pumpAndSettle();
 
     expect(find.text('Paso 2 de 6 · Seguridad'), findsOneWidget);

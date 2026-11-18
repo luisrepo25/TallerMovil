@@ -17,6 +17,7 @@ import '../widgets/paso_predio.dart';
 import '../widgets/paso_resumen.dart';
 import '../widgets/paso_seguridad.dart';
 import '../widgets/pasos_indicador.dart';
+import '../widgets/referencia_anterior.dart';
 
 /// Asistente de inspección de un predio. Se guarda solo en cada cambio y funciona sin
 /// conexión. Devuelve `true` al navegar atrás si el acta quedó cerrada.
@@ -96,6 +97,13 @@ class _Contenido extends StatelessWidget {
                 predio: predio,
                 campania: campania,
                 precargadaDe: c.acta!.precargadaDe,
+                referencia: c.anterior == null
+                    ? null
+                    : ReferenciaAnterior(
+                        anterior: c.anterior!,
+                        catalogos: c.catalogos!,
+                        onCopiar: c.copiarDeAnterior,
+                      ),
               ),
               PasoInspeccion.seguridad => PasoSeguridad(controller: c),
               PasoInspeccion.materiales => PasoMateriales(controller: c),
