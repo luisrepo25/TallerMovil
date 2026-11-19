@@ -8,7 +8,7 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
 
     <application
-        android:label="app_movil_uubr"
+        android:label="UUBR Inspector"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
